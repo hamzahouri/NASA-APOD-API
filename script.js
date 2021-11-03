@@ -2,7 +2,7 @@ const resultsNav = document.getElementById('resultsNav');
 const favoritesNav = document.getElementById('favoritesNav');
 const imagesContainer = document.querySelector('.images-container');
 const saveConfirmed = document.querySelector('.save-confirmed');
-const loader = document.querySelector('loader');
+const loader = document.querySelector('.loader');
 
 
 // NASA API 
@@ -13,9 +13,25 @@ const apiUrl = `https://api.nasa.gov/planetary/apod?api_key=${apiKey}&count=${co
 let resultsArray = [];
 let favorites= {};
 
+//function to remove loader 
+function showContent(page) {
+    window.scrollTo({top:0, behavior:'instant'})
+    if(page=== 'results') {
+        resultsNav.classList.remove('hidden');
+        favoritesNav.classList.add('hidden');
+    } else {
+        resultsNav.classList.add('hidden');
+        favoritesNav.classList.remove('hidden');
+
+    }
+    loader.classList.add('hidden');
+}
+
 //function that will creat DOM element 
-function updateDOM() {
-    resultsArray.forEach((result) => {
+function createDOMNodes (page) {
+    const currentArray =page === 'results' ? resultsArray : Object.values(favorites);
+    
+    currentArray.forEach((result) => {
         
         //card container
         const card = document.createElement('div');
@@ -44,8 +60,13 @@ function updateDOM() {
         //save text
         const saveText = document.createElement('p');
         saveText.classList.add('clickable');
+       if (page==='results') {
         saveText.textContent= 'add to favorite';
-        saveText.setAttribute ('onclick',`saveFavorite('${result.url}')`); 
+        saveText.setAttribute ('onclick',`saveFavorite('${result.url}')`);
+       } else {
+        saveText.textContent= 'remove favorites';
+        saveText.setAttribute ('onclick',`removeFavorite('${result.url}')`);
+       }
         //card text
         const cardText = document.createElement('p');
         cardText.textContent = result.explanation;
@@ -69,15 +90,28 @@ function updateDOM() {
 
     });
 }
+function updateDOM(page) {
+    //Get favoroites from local storage
+    if(localStorage.getItem('nasa')) {
+        favorites = JSON.parse(localStorage.getItem('nasa'));
+        
+    }
+    imagesContainer.textContent = '';
+    createDOMNodes(page);
+    // show content and remove loader when the dom is created
+    showContent(page);
+    
+}
 
 // Get 10 Images from NASA API
 
 async function getNasaPictures() {
+    //show loader
+    loader.classList.remove('hidden');
     try{
        const response = await fetch(apiUrl);
        resultsArray = await response.json();
-       console.log(resultsArray);
-       updateDOM();
+       updateDOM('results');
 
     } catch(error) {
         //catch error here
@@ -102,6 +136,17 @@ function saveFavorite(itemUrl) {
 }
 });
 }
+
+//Remove item from favorites
+function removeFavorite(itemUrl) {
+    if (favorites[itemUrl]) {
+        delete favorites[itemUrl];
+        // set favorites in local storage
+    localStorage.setItem('nasa',JSON.stringify(favorites));
+    updateDOM('favorites');
+    }
+
+} 
 
 // on load 
 getNasaPictures();
